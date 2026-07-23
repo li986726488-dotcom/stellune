@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { useRouter } from "vue-router";
+import P3DatePicker from "@/components/common/P3DatePicker.vue";
+import P3TimePicker from "@/components/common/P3TimePicker.vue";
 import { zodiacFromBirthday } from "@/services/zodiac";
 import { useAppStore } from "@/stores/app";
 import { useDailyReadingStore } from "@/stores/daily-reading";
@@ -80,16 +82,17 @@ async function submit() {
         </div>
       </div>
 
-      <label class="form-field">
+      <div class="form-field">
         <span>生日 <em>必须</em></span>
-        <input
+        <P3DatePicker
           v-model="birthday"
-          type="date"
+          label="生日"
+          placeholder="请选择生日"
           required
-          data-testid="birthday-input"
-          aria-describedby="birthday-hint"
+          test-id="birthday-input"
+          described-by="birthday-hint"
         />
-      </label>
+      </div>
 
       <div class="zodiac-preview" id="birthday-hint">
         <span class="zodiac-preview-icon">
@@ -129,10 +132,14 @@ async function submit() {
           <input v-model="nickname" type="text" maxlength="20" placeholder="星际旅人" />
         </label>
         <div class="form-row">
-          <label class="form-field">
+          <div class="form-field">
             <span>出生时间</span>
-            <input v-model="birthTime" type="time" />
-          </label>
+            <P3TimePicker
+              v-model="birthTime"
+              label="出生时间"
+              test-id="onboarding-birth-time"
+            />
+          </div>
           <label class="form-field">
             <span>出生城市</span>
             <input v-model="birthCity" type="text" maxlength="30" placeholder="上海" />

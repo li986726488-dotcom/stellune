@@ -219,6 +219,26 @@ pub async fn save_mood(pool: &SqlitePool, mood: &MoodEntry) -> Result<(), AppErr
     Ok(())
 }
 
+pub async fn get_mood(pool: &SqlitePool, date: &str) -> Result<Option<MoodEntry>, AppError> {
+    let row = sqlx::query(
+        "SELECT id, local_date, mood
+         FROM mood_entries
+         WHERE local_date = ?",
+    )
+    .bind(date)
+    .fetch_optional(pool)
+    .await
+    .map_err(AppError::database)?;
+    row.map(|row| {
+        Ok(MoodEntry {
+            id: row.try_get("id").map_err(AppError::database)?,
+            date: row.try_get("local_date").map_err(AppError::database)?,
+            mood: row.try_get("mood").map_err(AppError::database)?,
+        })
+    })
+    .transpose()
+}
+
 pub async fn get_trail_entries(pool: &SqlitePool, days: i64) -> Result<Vec<TrailEntry>, AppError> {
     let rows = sqlx::query(
         "SELECT r.reading_json, m.mood
@@ -278,9 +298,13 @@ pub async fn save_fortune(
     rules_version: &str,
 ) -> Result<(), AppError> {
     sqlx::query(
-        "INSERT OR IGNORE INTO daily_fortunes
+        "INSERT INTO daily_fortunes
          (id, local_date, guest_id, rules_version, fortune_json, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)",
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(local_date, guest_id, rules_version) DO UPDATE SET
+           id = excluded.id,
+           fortune_json = excluded.fortune_json,
+           created_at = excluded.created_at",
     )
     .bind(&fortune.id)
     .bind(&fortune.date)

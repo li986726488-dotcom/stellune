@@ -1,5 +1,7 @@
 # Stellune Design QA
 
+## 全局界面与探索页验收
+
 **Comparison target**
 
 - Source visual truth: `<LOCAL_REFERENCE_ASSET>`
@@ -92,5 +94,65 @@
 **Follow-up polish**
 
 - If the MVP later adds a custom canvas constellation renderer, point halos and radial guide decoration can be brought even closer to the source without changing the score contract.
+
+## P3 出生日期与时间选择器验收
+
+- Source visual truth: `<LOCAL_GENERATED_ASSET>`
+- Implementation screenshots:
+  - `<PROJECT_ROOT>\docs\qa\screenshots\p3-date-picker-profile.png`
+  - `<PROJECT_ROOT>\docs\qa\screenshots\p3-time-picker-profile.png`
+- Combined comparison: `<PROJECT_ROOT>\docs\qa\screenshots\p3-date-picker-comparison.png`
+- Viewport: `960 × 640` CSS px
+- Source: `1536 × 1024` px，按 `960 × 640` 等比归一化
+- Implementation: `960 × 640` px，`devicePixelRatio: 1`
+- State: “我的”资料编辑弹窗，日期或时间选择器展开
+
+## Full-view comparison evidence
+
+归一化后的并排图显示：实现保留了参考图的深蓝半透明面板、紫色焦点描边、金色选中圆环、月历标题与左右导航、底部“清除/今天”操作。弹层与固定窗口、资料编辑卡、左侧导航的比例协调，日期弹层边界为窗口内 `bottom: 634px`。
+
+参考图是概念稿，没有完整呈现出生城市字段；实现保留现有产品字段和两列表单，这是既有数据结构约束，不属于视觉回退。
+
+## Focused region evidence
+
+时间选择器作为参考图未完整给出的扩展状态单独验收。实现使用同一 P3 容器、标题层级、紫色选中态和金色操作文字；资料页向下展开，边界为 `top: 385px`、`bottom: 635px`，没有越出固定窗口。
+
+## Required fidelity surfaces
+
+- Fonts and typography: 沿用项目宋体显示体系；标题、字段、日历数字和辅助文字层级清晰，无截断或异常换行。
+- Spacing and layout rhythm: 日期网格、周标题、页头和页脚间距一致；弹层与触发器对齐，关键操作未被窗口裁切。
+- Colors and visual tokens: 颜色、尺寸、圆角和阴影均由 `tokens.css` 的语义 token 驱动；选中、悬停、焦点状态与参考图同属雾紫和浅金体系。
+- Image quality and asset fidelity: 该控件没有自定义位图资产；图标使用项目现有 Phosphor 图标库，没有 Unicode 或临时 CSS 图标。
+- Copy and content: 日期使用 `YYYY/MM/DD`，提供“清除/今天”；时间提供“清除/完成”，与资料填写语义一致。
+
+## Comparison history
+
+1. First pass — blocked
+   - [P1] `.profile-modal header` 误作用于内嵌日历头，年月标题被压成三行。
+   - [P2] 资料弹窗垂直居中，日期弹层底部超出 `640px`。
+2. Fixes
+   - 将资料头部规则收窄为 `.profile-modal > header`。
+   - 通过 `--profile-modal-top` 将资料弹窗上移到参考图位置。
+   - 资料页时间弹层改为向下展开，并压缩滚动列高度。
+3. Final pass
+   - 年月单行展示。
+   - 日期与时间弹层均处于 `960 × 640` 边界内。
+   - 浏览器控制台 error/warning 为 0。
+
+## Findings
+
+没有剩余 P0、P1 或 P2 问题。
+
+## Follow-up polish
+
+- [P3] 参考概念稿的日期弹层更紧凑；当前实现稍宽，以提高 42 个日期按钮的可读性和键盘焦点面积。
+
+## Verification
+
+- `npm run typecheck`
+- `npm run test`
+- `npm run test:e2e` — 12 passed
+- 资料修改定向回归 — 2 passed，包含时间清除后重新选择
+- 浏览器控制台 error/warning — 0
 
 final result: passed

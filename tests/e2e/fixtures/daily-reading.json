@@ -57,14 +57,14 @@
       "certainty": "entertainment-rule"
     },
     "time": {
-      "value": "19:00—21:00",
-      "basis": "Moon in Scorpio evening slot",
+      "value": "全天平稳",
+      "basis": "Moon does not reach a close harmonious aspect during usable hours",
       "certainty": "entertainment-rule"
     }
   },
   "source": {
     "provider": "AstrologyAPI fixture",
-    "rulesVersion": "2026.07.1",
+    "rulesVersion": "2026.07.2",
     "narrativeProvider": "template",
     "stale": false
   }

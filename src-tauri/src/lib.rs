@@ -31,9 +31,12 @@ pub fn run() {
             commands::save_profile,
             commands::get_daily_reading,
             commands::save_mood,
+            commands::get_today_mood,
             commands::get_trail,
             commands::get_daily_fortune,
             commands::draw_daily_fortune,
+            commands::get_compatibility,
+            commands::get_emotion_guide,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Stellune");

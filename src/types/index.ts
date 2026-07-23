@@ -142,11 +142,44 @@ export type FortuneGrade =
 export interface DailyFortune {
   id: string;
   date: string;
+  number: number;
+  catalog: "星轨百签";
   grade: FortuneGrade;
   title: string;
   verse: string;
   interpretation: string;
   advice: string;
+}
+
+export interface CompatibilityFactor {
+  key: "element" | "modality" | "polarity" | "aspect";
+  label: string;
+  score: number;
+}
+
+export interface CompatibilityReading {
+  mode: "sunSignCompatibility";
+  primarySign: ZodiacSign;
+  partnerSign: ZodiacSign;
+  score: number;
+  level: string;
+  title: string;
+  summary: string;
+  factors: CompatibilityFactor[];
+  certainty: "sun-sign-entertainment";
+  rulesVersion: string;
+}
+
+export interface EmotionGuide {
+  mood: Mood;
+  title: string;
+  summary: string;
+  action: string;
+  need: string;
+  basedOn: string[];
+  generator: "template";
+  certainty: "emotional-companion";
+  rulesVersion: string;
 }
 
 export interface AppErrorShape {

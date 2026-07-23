@@ -44,7 +44,7 @@ Vue Page
 | `/onboarding` | 首次填写生日和可选资料 |
 | `/` | 今日宇宙简报 |
 | `/trail` | 七日和历史回望 |
-| `/explore` | 每日签运 |
+| `/explore` | 每日签运、太阳星座轻量共鸣与情绪说明书 |
 | `/profile` | 个人资料与设置 |
 
 ## 目录建议
@@ -66,6 +66,7 @@ src-tauri/src/
   commands/
   services/
   domain/
+    explore.rs
     models.rs
     rules.rs
   infrastructure/
@@ -221,6 +222,8 @@ Rust 侧通过 `infrastructure/logger` 输出结构化 JSONL。日志目录始�
 - `reading.cache.*`：今日缓存命中或未命中。
 - `rules.calculated`：标准化星相、规则命中、分数和幸运提示。
 - `generation.input` / `generation.output`：模板生成输入和最终文案。
+- `compatibility.calculated`：双方太阳星座、各因子得分、总分和规则版本。
+- 情绪说明书复用 `generation.input/output`，输入为心情、主题和分数，输出为结构化建议。
 - `reading.persisted` / `reading.discarded` / `reading.fallback`：保存、版本竞争丢弃和失败回退。
 
 `external_request`、`external_response`、`generation_input` 和
@@ -236,8 +239,38 @@ Rust 侧通过 `infrastructure/logger` 输出结构化 JSONL。日志目录始�
 
 - 幸运色、数字和时段由确定性 `LuckyEngine` 生成。
 - 每项结果保存 `basis` 和 `certainty: "entertainment-rule"`。
-- 每日签运使用 `hash(localDate + guestId + fortuneRulesVersion)` 生成稳定结果。
-- 首次抽取后写入数据库，同一天只读取，不重新抽取。
+- 幸运时段在 `07:00—23:00` 内推算月亮日内位置；仅接近太阳星座合相、六合或三合
+  且容许度不超过 `3°` 时返回具体窗口，否则返回“全天平稳”。
+- 每日签运首次使用 `hash(localDate + guestId + fortuneRulesVersion) % 100` 从
+  `domain/fortune_catalog.rs` 的原创“星轨百签”中生成稳定编号；主动重抽加入随机
+  nonce，并在命中当前签时顺延一位，确保结果发生变化。
+- 星轨百签参考传统编号签的结构，但 100 支标题、签诗、解读和建议均为项目原创，
+  不使用具体宗教名号或复制传统签文。
+- `DailyFortune` 保存 `number`、`catalog`、`grade`、签诗、解读和建议。
+- 七个签级在 100 支签中按 `6 / 16 / 20 / 25 / 15 / 16 / 2` 分布，
+  下签内容只提供风险提醒和可执行的自我照顾建议。
+- 每次抽取后覆盖写入当天数据库记录，重开应用恢复最后一次结果。
+
+## 探索页生成
+
+探索页的关系共鸣由 `domain/explore.rs` 确定性计算，不由前端拼分数：
+
+```text
+10
++ 元素关系（18 / 30 / 35）
++ 宫位模式（7 / 9 / 12 / 15）
++ 阴阳极性（6 / 10）
++ 黄道距离（6 / 8 / 10 / 14 / 16 / 18 / 20）
+```
+
+最终限制在 `45..95`，当前模式固定标记为
+`sunSignCompatibility` 和 `sun-sign-entertainment`。它只表示太阳星座层面的
+娱乐共鸣，不等同于双方本命盘合盘。
+
+情绪说明书只使用用户主动选择或当天已保存的 `MoodEntry`，不推断情绪。
+`EmotionGuideEngine` 将心情、今日主题和五维分数档位转换为需要、标题、解释和
+一个可执行建议。结果使用现有 `generation.input/output` 记录，当前
+`generator` 为 `emotion-template`；未来模型只允许润色文案，不改写规则结果。
 
 ## 数据库
 
@@ -267,9 +300,12 @@ Rust 侧通过 `infrastructure/logger` 输出结构化 JSONL。日志目录始�
 | `get_profile` / `save_profile` | 读取和保存资料 |
 | `get_daily_reading` | 读取或生成今日结果 |
 | `save_mood` | 保存当天心情 |
+| `get_today_mood` | 读取当天已保存心情，供今日页与探索页同步 |
 | `get_trail` | 获取历史摘要 |
 | `get_daily_fortune` | 获取已有签运 |
-| `draw_daily_fortune` | 首次抽取签运 |
+| `draw_daily_fortune` | 首次抽取或主动重抽签运 |
+| `get_compatibility` | 按用户与对方太阳星座计算轻量共鸣 |
+| `get_emotion_guide` | 按当天心情与今日简报生成情绪说明书 |
 
 command 只做参数校验和 service 调用。
 
@@ -355,7 +391,7 @@ tests/e2e/
 2. 今日页渲染综合分、五维星图、简报和幸运提示。
 3. 心情保存后按钮状态和星迹记录同步变化。
 4. 星迹页切换七日记录。
-5. 每日签运首次抽取后重复进入仍返回同一结果。
+5. 每日签运重抽不会重复当前签，重复进入恢复当天最后一次结果。
 6. 修改资料后生成状态更新，旧结果仍可追溯。
 7. 星相失败、文案 fallback、空历史和重复抽签状态。
 

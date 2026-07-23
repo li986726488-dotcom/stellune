@@ -12,6 +12,7 @@ blob-report/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/.sqlx/
+.superpowers/
 *.db
 *.db-shm
 *.db-wal

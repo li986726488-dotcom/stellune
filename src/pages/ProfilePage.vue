@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import PageHeader from "@/components/common/PageHeader.vue";
+import P3DatePicker from "@/components/common/P3DatePicker.vue";
+import P3TimePicker from "@/components/common/P3TimePicker.vue";
 import StatePanel from "@/components/common/StatePanel.vue";
 import { formatChineseDate } from "@/services/zodiac";
 import { useDailyReadingStore } from "@/stores/daily-reading";
@@ -204,15 +206,28 @@ onMounted(async () => {
             <span>称呼</span>
             <input v-model="form.nickname" maxlength="20" />
           </label>
-          <label class="form-field">
+          <div class="form-field">
             <span>生日</span>
-            <input v-model="form.birthday" type="date" required data-testid="profile-birthday" />
-          </label>
+            <P3DatePicker
+              v-model="form.birthday"
+              label="生日"
+              placeholder="请选择生日"
+              required
+              test-id="profile-birthday"
+              @update:model-value="confirmingChange = false"
+            />
+          </div>
           <div class="form-row">
-            <label class="form-field">
+            <div class="form-field">
               <span>出生时间</span>
-              <input v-model="form.birthTime" type="time" />
-            </label>
+              <P3TimePicker
+                v-model="form.birthTime"
+                label="出生时间"
+                placement="bottom"
+                test-id="profile-birth-time"
+                @update:model-value="confirmingChange = false"
+              />
+            </div>
             <label class="form-field">
               <span>出生城市</span>
               <input v-model="form.birthCity" />

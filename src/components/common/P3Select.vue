@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  useId,
+  watch,
+} from "vue";
 
 export interface P3SelectOption {
   value: string;
@@ -34,6 +42,21 @@ const selectedLabel = computed(
 
 watch(selectedIndex, (index) => {
   if (!open.value) activeIndex.value = index;
+});
+
+async function scrollActiveIntoView() {
+  await nextTick();
+  document
+    .getElementById(optionId(activeIndex.value))
+    ?.scrollIntoView({ block: "nearest" });
+}
+
+watch(activeIndex, () => {
+  if (open.value) void scrollActiveIntoView();
+});
+
+watch(open, (isOpen) => {
+  if (isOpen) void scrollActiveIntoView();
 });
 
 function optionId(index: number) {

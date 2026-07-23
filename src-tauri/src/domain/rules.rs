@@ -1,14 +1,14 @@
 use chrono::{Datelike, NaiveDate, Weekday};
 
 use crate::domain::models::{
-    DailyFortune, DailyReading, LuckyColor, LuckyHint, LuckyHints, PlanetPosition, Profile,
-    ReadingBrief, ReadingHero, ReadingScores, ReadingSource, ReadingTrace, RuleImpact,
-    ScoreDimensions, ZodiacSign,
+    DailyReading, LuckyColor, LuckyHint, LuckyHints, PlanetPosition, Profile, ReadingBrief,
+    ReadingHero, ReadingScores, ReadingSource, ReadingTrace, RuleImpact, ScoreDimensions,
+    ZodiacSign,
 };
 use crate::error::AppError;
 
-pub const RULES_VERSION: &str = "2026.07.1";
-pub const FORTUNE_RULES_VERSION: &str = "2026.07.1";
+pub const RULES_VERSION: &str = "2026.07.2";
+pub const FORTUNE_RULES_VERSION: &str = "2026.07.2";
 
 const ZODIACS: [(&str, &str, &str); 12] = [
     ("aries", "白羊座", "♈"),
@@ -45,6 +45,13 @@ pub fn zodiac_from_birthday(birthday: &str) -> Result<ZodiacSign, AppError> {
         _ => return Err(AppError::validation("生日不是有效日期。")),
     };
     Ok(zodiac_by_index(index))
+}
+
+pub fn zodiac_from_slug(slug: &str) -> Option<ZodiacSign> {
+    ZODIACS
+        .iter()
+        .position(|item| item.0 == slug)
+        .map(zodiac_by_index)
 }
 
 pub fn weekday_cn(date: NaiveDate) -> String {
@@ -414,12 +421,7 @@ fn calculate_lucky(
         .map(|position| position.degree_in_sign.floor() as u32)
         .unwrap_or(date.day());
     let number = ((moon_degree + zodiac_index as u32 + 1) % 9) + 1;
-    let time = match moon.map(|position| english_sign_index(&position.sign) % 4) {
-        Some(0) => "18:00—20:00",
-        Some(1) => "19:00—21:00",
-        Some(2) => "20:00—22:00",
-        _ => "21:00—23:00",
-    };
+    let (time, time_basis) = calculate_lucky_time(moon, zodiac_index);
 
     LuckyHints {
         color: LuckyColor {
@@ -434,75 +436,54 @@ fn calculate_lucky(
             certainty: "entertainment-rule".into(),
         },
         time: LuckyHint {
-            value: time.into(),
-            basis: "月亮星座映射到当日陪伴时段".into(),
+            value: time,
+            basis: time_basis.into(),
             certainty: "entertainment-rule".into(),
         },
     }
 }
 
-pub fn fortune_by_index(index: usize, date: &str) -> DailyFortune {
-    let fortunes = [
-        (
-            "上上签",
-            "星河入梦",
-            "长夜有微光，心愿自成章。",
-            "你正在进入更顺畅的节奏，适合主动回应真正重要的人和事。",
-            "把今天最想完成的事放在第一位。",
-        ),
-        (
-            "上签",
-            "云开见月",
-            "云移月渐明，缓步见归程。",
-            "眼前的迟疑正在散开，真正适合你的方向会逐渐清晰。",
-            "先完成一件重要的小事。",
-        ),
-        (
-            "中上签",
-            "风来有信",
-            "风过花自醒，静候一封信。",
-            "不必催促答案，保持开放会让新的回应自然出现。",
-            "给一段关系多一点真实表达。",
-        ),
-        (
-            "中签",
-            "水静流深",
-            "水静知深浅，心安见远山。",
-            "今天更适合整理和观察，稳定本身也是一种前进。",
-            "留出一段不被打扰的时间。",
-        ),
-        (
-            "中下签",
-            "雾里看花",
-            "雾重花未隐，天明自可寻。",
-            "暂时看不清并不等于失去方向，先减少无谓的消耗。",
-            "重要决定留到情绪稳定之后。",
-        ),
-        (
-            "下签",
-            "潮声稍急",
-            "潮来声渐急，系舟待风平。",
-            "外界节奏可能偏快，越是着急越需要守住自己的次序。",
-            "减少同时处理的事情数量。",
-        ),
-        (
-            "下下签",
-            "夜雨停舟",
-            "夜雨敲孤舟，天明仍有岸。",
-            "今天适合休整而不是强行推进，低潮只是提醒你补充能量。",
-            "照顾睡眠和身体，不对自己下结论。",
-        ),
-    ];
-    let item = fortunes[index % fortunes.len()];
-    DailyFortune {
-        id: format!("fortune-{date}"),
-        date: date.into(),
-        grade: item.0.into(),
-        title: item.1.into(),
-        verse: item.2.into(),
-        interpretation: item.3.into(),
-        advice: item.4.into(),
+fn calculate_lucky_time(
+    moon: Option<&PlanetPosition>,
+    zodiac_index: usize,
+) -> (String, &'static str) {
+    let Some(moon) = moon else {
+        return ("全天平稳".into(), "缺少月亮数据，不指定单一幸运时段");
+    };
+    let reference_degree = zodiac_index as f64 * 30.0 + 15.0;
+    let mut closest = (7, f64::INFINITY);
+
+    for hour in 7..=21 {
+        let midpoint_hour = hour as f64 + 1.0;
+        let projected_moon =
+            normalize_degree(moon.longitude + moon.speed * ((midpoint_hour - 12.0) / 24.0));
+        let separation = angular_distance(projected_moon, reference_degree);
+        let orb = [0.0, 60.0, 120.0]
+            .into_iter()
+            .map(|angle| (separation - angle).abs())
+            .fold(f64::INFINITY, f64::min);
+        if orb < closest.1 {
+            closest = (hour, orb);
+        }
     }
+
+    if closest.1 <= 3.0 {
+        (
+            format!("{:02}:00—{:02}:00", closest.0, closest.0 + 2),
+            "月亮日内运行接近太阳星座和谐相位的时段",
+        )
+    } else {
+        ("全天平稳".into(), "今日月亮未在可用时段内接近精确和谐相位")
+    }
+}
+
+fn normalize_degree(value: f64) -> f64 {
+    value.rem_euclid(360.0)
+}
+
+fn angular_distance(first: f64, second: f64) -> f64 {
+    let distance = (first - second).abs().rem_euclid(360.0);
+    distance.min(360.0 - distance)
 }
 
 fn zodiac_by_index(index: usize) -> ZodiacSign {
@@ -592,5 +573,41 @@ mod tests {
         let (second, _) = calculate_reading(&profile, &positions, date);
         assert_eq!(first.scores.overall, second.scores.overall);
         assert_eq!(first.lucky.number.value, second.lucky.number.value);
+    }
+
+    #[test]
+    fn lucky_time_can_select_a_daytime_window() {
+        let moon = PlanetPosition {
+            planet: "Moon".into(),
+            longitude: 197.166_666_666_7,
+            degree_in_sign: 17.166_666_666_7,
+            sign: "Libra".into(),
+            speed: 13.0,
+            retrograde: false,
+        };
+        let date = NaiveDate::from_ymd_opt(2026, 7, 23).expect("date");
+
+        let lucky = calculate_lucky(&[moon], 6, date);
+
+        assert_eq!(lucky.time.value, "07:00—09:00");
+        assert_eq!(lucky.time.basis, "月亮日内运行接近太阳星座和谐相位的时段");
+    }
+
+    #[test]
+    fn lucky_time_does_not_force_a_window_without_a_close_aspect() {
+        let moon = PlanetPosition {
+            planet: "Moon".into(),
+            longitude: 229.47,
+            degree_in_sign: 19.47,
+            sign: "Scorpio".into(),
+            speed: 13.0,
+            retrograde: false,
+        };
+        let date = NaiveDate::from_ymd_opt(2026, 7, 23).expect("date");
+
+        let lucky = calculate_lucky(&[moon], 6, date);
+
+        assert_eq!(lucky.time.value, "全天平稳");
+        assert_eq!(lucky.time.basis, "今日月亮未在可用时段内接近精确和谐相位");
     }
 }

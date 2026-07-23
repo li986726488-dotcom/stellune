@@ -29,7 +29,14 @@ test("首次启动只要求生日，并进入今日页", async ({ page }) => {
   await expect(dragRegion).toHaveCSS("height", "32px");
   await expect(dragRegion).toHaveCSS("width", "960px");
   await expect(page.getByTestId("onboarding-form")).toBeVisible();
-  await page.getByTestId("birthday-input").fill("1998-10-08");
+  await page.getByTestId("birthday-input").click();
+  await page.getByTestId("calendar-title").click();
+  while ((await page.getByTestId("calendar-year-1998").count()) === 0) {
+    await page.getByTestId("calendar-previous").click();
+  }
+  await page.getByTestId("calendar-year-1998").click();
+  await page.getByTestId("calendar-month-10").click();
+  await page.getByTestId("calendar-day-1998-10-08").click();
   await expect(page.getByText("天秤座")).toBeVisible();
   await page.getByTestId("onboarding-submit").click();
   await expect(page.getByTestId("today-title")).toHaveText(
@@ -62,21 +69,64 @@ test("星迹页可切换七日记录并更新回望内容", async ({ page }) => 
   await assertFixedViewport(page);
 });
 
-test("探索页一天只抽一次，同一会话保持同一签", async ({ page }) => {
+test("探索页可以重新抽签并保存当天最新结果", async ({ page }) => {
   await page.goto("/#/explore");
   await expect(page.getByText("轻触抽取今日签")).toBeVisible();
   const resonanceSign = page.getByRole("combobox", { name: "选择对方星座" });
   await expect(resonanceSign).toHaveText("双子座");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("85");
+  await expect(page.getByTestId("compatibility-title")).toHaveText(
+    "风与风的默契",
+  );
   await resonanceSign.press("ArrowDown");
   await expect(page.getByRole("listbox")).toBeVisible();
   await resonanceSign.press("Enter");
-  await expect(resonanceSign).toHaveText("水瓶座");
+  await expect(resonanceSign).toHaveText("巨蟹座");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("51");
+  await expect(page.getByTestId("compatibility-title")).toHaveText(
+    "差异里的吸引力",
+  );
   await resonanceSign.click();
   await expect(
-    page.getByRole("option", { name: "水瓶座", selected: true }),
+    page.getByRole("option", { name: "巨蟹座", selected: true }),
   ).toBeVisible();
   await page.getByRole("option", { name: "狮子座" }).click();
   await expect(resonanceSign).toHaveText("狮子座");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("88");
+
+  await expect(page.getByTestId("emotion-guide-title")).toHaveText(
+    "先听见此刻的自己",
+  );
+  await expect(page.getByTestId("emotion-开心")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await page.getByTestId("emotion-疲惫").click();
+  await expect(page.getByTestId("emotion-guide-title")).toHaveText(
+    "有力量，也要允许自己停一停",
+  );
+  await expect(page.getByTestId("emotion-guide-action")).toHaveText(
+    "取消或推迟一件今天并不必要的任务。",
+  );
+  await expect(page.getByTestId("emotion-疲惫")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await resonanceSign.press("ArrowDown");
+  await resonanceSign.press("End");
+  await expect(page.getByRole("option", { name: "双鱼座" })).toBeInViewport();
+  await expect(page.getByRole("option", { name: "双鱼座" })).toHaveClass(
+    /active/,
+  );
+  await resonanceSign.press("Enter");
+  await expect(resonanceSign).toHaveText("双鱼座");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("55");
+  await resonanceSign.click();
+  await expect(
+    page.getByRole("option", { name: "双鱼座", selected: true }),
+  ).toBeInViewport();
+  await resonanceSign.press("Escape");
 
   const fortuneCard = page.getByTestId("daily-fortune-card");
   await expect(page.locator(".fortune-card-scene")).toHaveCSS("perspective", "900px");
@@ -96,11 +146,97 @@ test("探索页一天只抽一次，同一会话保持同一签", async ({ page 
     await fortuneCard.evaluate((element) => getComputedStyle(element).transform),
   ).not.toBe("none");
   await expect(page.getByTestId("fortune-title")).toHaveText("云开见月");
-  await expect(page.getByText("上签")).toBeVisible();
+  await expect(page.getByTestId("fortune-number")).toHaveText("第 47 签 · 上上签");
+  await expect(page.getByTestId("draw-fortune")).toContainText("重新抽签");
+  await page.getByTestId("draw-fortune").click();
+  await expect(page.getByTestId("draw-fortune")).toBeDisabled();
+  await expect(page.getByTestId("draw-fortune")).toContainText("星轨正在旋转…");
+  await page.waitForTimeout(1650);
+  await expect(page.getByTestId("fortune-title")).toHaveText("春水绕石");
+  await expect(page.getByTestId("fortune-number")).toHaveText("第 48 签 · 中上签");
+  await expect(page.getByText("每次重抽都会更新今日保存的签")).toBeVisible();
   await page.getByTestId("nav-profile").click();
+  await page.getByTestId("nav-today").click();
+  await expect(page.getByTestId("mood-疲惫")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByTestId("save-mood")).toContainText("今日星迹已点亮");
   await page.getByTestId("nav-explore").click();
-  await expect(page.getByTestId("fortune-title")).toHaveText("云开见月");
-  await expect(page.getByText("今日签运已揭晓 · 明日再来")).toBeVisible();
+  await expect(page.getByTestId("fortune-title")).toHaveText("春水绕石");
+  await expect(page.getByText("每次重抽都会更新今日保存的签")).toBeVisible();
+  await assertFixedViewport(page);
+});
+
+test("探索页请求失败时恢复已确认内容并显示提示", async ({ page }) => {
+  await page.goto("/?scenario=explore-error#/explore");
+  const resonanceSign = page.getByRole("combobox", { name: "选择对方星座" });
+  await expect(page.getByTestId("compatibility-score")).toHaveText("85");
+
+  await resonanceSign.click();
+  await page.getByRole("option", { name: "巨蟹座" }).click();
+  await expect(page.getByTestId("compatibility-error")).toContainText(
+    "关系共鸣暂时没有回应。",
+  );
+  await expect(resonanceSign).toHaveText("双子座");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("85");
+
+  await page.getByTestId("emotion-疲惫").click();
+  await expect(page.getByTestId("emotion-error")).toContainText(
+    "情绪说明书暂时没有回应。",
+  );
+  await expect(page.getByTestId("emotion-疲惫")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.getByTestId("emotion-guide-title")).toHaveText(
+    "先听见此刻的自己",
+  );
+  await assertFixedViewport(page);
+});
+
+test("快速切换心情时最后一次选择同时写入探索页和今日页", async ({
+  page,
+}) => {
+  await page.goto("/?scenario=rapid-mood#/explore");
+  await page.getByTestId("emotion-疲惫").click();
+  await page.getByTestId("emotion-低落").click();
+  await expect(page.getByTestId("emotion-guide-title")).toHaveText(
+    "低落不是对今天的结论",
+  );
+  await page.getByTestId("nav-today").click();
+  await expect(page.getByTestId("mood-低落")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await assertFixedViewport(page);
+});
+
+test("旧心情生成完成时不会覆盖随后失败的新选择", async ({ page }) => {
+  await page.goto("/?scenario=rapid-mood-failure#/explore");
+  await page.getByTestId("emotion-疲惫").click();
+  await page.getByTestId("emotion-低落").click();
+  await expect(page.getByTestId("emotion-error")).toContainText(
+    "最新心情暂时保存失败。",
+  );
+  await expect(page.getByTestId("emotion-疲惫")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.getByTestId("emotion-低落")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await page.getByTestId("nav-today").click();
+  await expect(page.getByTestId("mood-疲惫")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.getByTestId("mood-低落")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  await expect(page.getByTestId("save-mood")).toContainText("点亮今日星迹");
   await assertFixedViewport(page);
 });
 
@@ -110,7 +246,16 @@ test("我的页可以修改本地个人资料", async ({ page }) => {
   await page.getByTestId("edit-profile").click();
   const form = page.getByTestId("profile-form");
   await form.getByLabel("称呼").fill("月光旅人");
-  await form.getByLabel("出生时间").fill("08:30");
+  await page.getByTestId("profile-birth-time").click();
+  await page.getByTestId("time-hour-08").click();
+  await page.getByTestId("time-minute-30").click();
+  await page.getByTestId("time-confirm").click();
+  await page.getByTestId("time-clear-inline").click();
+  await expect(page.getByTestId("profile-birth-time")).toContainText("未填写");
+  await page.getByTestId("profile-birth-time").click();
+  await page.getByTestId("time-hour-08").click();
+  await page.getByTestId("time-minute-30").click();
+  await page.getByTestId("time-confirm").click();
   await form.getByLabel("出生城市").fill("杭州");
   await page.getByTestId("save-profile").click();
   await expect(page.getByTestId("profile-change-confirmation")).toBeVisible();

@@ -8,14 +8,13 @@ use uuid::Uuid;
 
 use crate::{
     domain::{
+        explore::{calculate_compatibility, render_emotion_guide},
+        fortune_catalog::{FORTUNE_COUNT, fortune_by_index},
         models::{
-            AppStateDto, DailyFortune, DailyReading, MoodEntry, Profile, ProfileInput,
-            ScoreDimensions, TrailResponse, TrailSummary,
+            AppStateDto, CompatibilityReading, DailyFortune, DailyReading, EmotionGuide, MoodEntry,
+            Profile, ProfileInput, ScoreDimensions, TrailResponse, TrailSummary,
         },
-        rules::{
-            FORTUNE_RULES_VERSION, RULES_VERSION, calculate_reading, fortune_by_index,
-            zodiac_from_birthday,
-        },
+        rules::{FORTUNE_RULES_VERSION, RULES_VERSION, calculate_reading, zodiac_from_birthday},
     },
     error::AppError,
     infrastructure::{
@@ -281,6 +280,11 @@ impl AppRuntime {
         Ok(entry)
     }
 
+    pub async fn today_mood(&self) -> Result<Option<MoodEntry>, AppError> {
+        let date = today().format("%Y-%m-%d").to_string();
+        database::get_mood(&self.pool, &date).await
+    }
+
     pub async fn trail(&self, days: i64) -> Result<TrailResponse, AppError> {
         let days = days.clamp(1, 90);
         let entries = database::get_trail_entries(&self.pool, days).await?;
@@ -302,15 +306,28 @@ impl AppRuntime {
             .profile()
             .await?
             .ok_or_else(AppError::profile_incomplete)?;
-        if let Some(fortune) = self.fortune().await? {
-            return Ok(fortune);
-        }
         let date = today().format("%Y-%m-%d").to_string();
+        let previous =
+            database::get_fortune(&self.pool, &date, &profile.guest_id, FORTUNE_RULES_VERSION)
+                .await?;
+        let draw_id = Uuid::new_v4();
         let seed = stable_hash(&format!(
-            "{}:{}:{}",
-            date, profile.guest_id, FORTUNE_RULES_VERSION
+            "{}:{}:{}:{}",
+            date,
+            profile.guest_id,
+            FORTUNE_RULES_VERSION,
+            previous
+                .as_ref()
+                .map(|_| draw_id.to_string())
+                .unwrap_or_else(|| "initial".into())
         ));
-        let index = usize::from_str_radix(&seed[..8], 16).unwrap_or_default() % 7;
+        let mut index = usize::from_str_radix(&seed[..8], 16).unwrap_or_default() % FORTUNE_COUNT;
+        if previous
+            .as_ref()
+            .is_some_and(|fortune| fortune.number as usize == index + 1)
+        {
+            index = (index + 1) % FORTUNE_COUNT;
+        }
         let fortune = fortune_by_index(index, &date);
         database::save_fortune(
             &self.pool,
@@ -319,7 +336,92 @@ impl AppRuntime {
             FORTUNE_RULES_VERSION,
         )
         .await?;
+        self.logger.info(
+            "fortune.drawn",
+            &format!("fortune-{draw_id}"),
+            json!({
+                "date": date,
+                "catalog": fortune.catalog,
+                "number": fortune.number,
+                "grade": fortune.grade,
+                "previousNumber": previous.as_ref().map(|item| item.number),
+                "redraw": previous.is_some(),
+                "rulesVersion": FORTUNE_RULES_VERSION,
+            }),
+        );
         Ok(fortune)
+    }
+
+    pub async fn compatibility(
+        &self,
+        partner_sign: String,
+    ) -> Result<CompatibilityReading, AppError> {
+        let profile = self
+            .profile()
+            .await?
+            .ok_or_else(AppError::profile_incomplete)?;
+        let partner_sign = partner_sign.trim().to_ascii_lowercase();
+        let reading = calculate_compatibility(&profile.zodiac.slug, &partner_sign)
+            .ok_or_else(|| AppError::validation("请选择有效的对方星座。"))?;
+        self.logger.info(
+            "compatibility.calculated",
+            &format!("compatibility-{}", Uuid::new_v4()),
+            json!({
+                "mode": reading.mode,
+                "primarySign": reading.primary_sign.slug,
+                "partnerSign": reading.partner_sign.slug,
+                "score": reading.score,
+                "level": reading.level,
+                "factors": reading.factors,
+                "rulesVersion": reading.rules_version,
+            }),
+        );
+        Ok(reading)
+    }
+
+    pub async fn emotion_guide(
+        &self,
+        mood: Option<String>,
+    ) -> Result<Option<EmotionGuide>, AppError> {
+        let profile = self
+            .profile()
+            .await?
+            .ok_or_else(AppError::profile_incomplete)?;
+        let date = today().format("%Y-%m-%d").to_string();
+        let selected_mood = match clean_optional(mood) {
+            Some(mood) => mood,
+            None => match database::get_mood(&self.pool, &date).await? {
+                Some(entry) => entry.mood,
+                None => return Ok(None),
+            },
+        };
+        let reading =
+            match database::get_current_reading_for_date(&self.pool, &profile.id, &date).await? {
+                Some(reading) => reading,
+                None => self.daily_reading().await?,
+            };
+        let guide = render_emotion_guide(&selected_mood, &reading)
+            .ok_or_else(|| AppError::validation("请选择列表中的心情。"))?;
+        let correlation_id = format!("emotion-{}", Uuid::new_v4());
+        self.logger.generation_input(
+            &correlation_id,
+            "emotion-template",
+            json!({
+                "date": reading.date,
+                "zodiac": reading.zodiac.slug,
+                "mood": selected_mood,
+                "theme": reading.hero.theme,
+                "scores": reading.scores,
+            }),
+        );
+        self.logger.generation_output(
+            &correlation_id,
+            "emotion-template",
+            json!({
+                "guide": guide,
+            }),
+        );
+        Ok(Some(guide))
     }
 }
 
@@ -533,6 +635,96 @@ mod tests {
             reading_cache_key(&recalibrated, date),
             reading_cache_key(&initial, date)
         );
+    }
+
+    #[tokio::test]
+    async fn explore_services_calculate_compatibility_and_reuse_saved_mood() {
+        let runtime = runtime().await;
+        let profile = runtime
+            .save_profile(ProfileInput {
+                nickname: None,
+                birthday: "1998-10-08".into(),
+                birth_time: None,
+                birth_city: None,
+            })
+            .await
+            .expect("profile");
+
+        let compatibility = runtime
+            .compatibility("gemini".into())
+            .await
+            .expect("compatibility");
+        assert_eq!(compatibility.score, 85);
+        assert_eq!(compatibility.primary_sign.slug, "libra");
+        assert_eq!(compatibility.partner_sign.slug, "gemini");
+
+        assert!(
+            runtime
+                .emotion_guide(None)
+                .await
+                .expect("missing mood is valid")
+                .is_none()
+        );
+
+        let saved_mood = runtime.save_mood("疲惫".into()).await.expect("saved mood");
+        assert_eq!(
+            runtime
+                .today_mood()
+                .await
+                .expect("today mood")
+                .expect("mood exists")
+                .id,
+            saved_mood.id
+        );
+
+        let date = today();
+        let (mut reading, trace) = calculate_reading(&profile, &[], date);
+        reading.id = "reading-explore-service".into();
+        assert!(
+            database::save_reading(
+                &runtime.pool,
+                "cache-explore-service",
+                &profile,
+                &reading,
+                &trace,
+            )
+            .await
+            .expect("save reading")
+        );
+
+        let guide = runtime
+            .emotion_guide(None)
+            .await
+            .expect("emotion guide")
+            .expect("saved mood produces a guide");
+        assert_eq!(guide.mood, "疲惫");
+        assert_eq!(guide.need, "休息与减负");
+    }
+
+    #[tokio::test]
+    async fn fortune_redraw_replaces_today_result_without_repeating_current_lot() {
+        let runtime = runtime().await;
+        runtime
+            .save_profile(ProfileInput {
+                nickname: None,
+                birthday: "1998-10-08".into(),
+                birth_time: None,
+                birth_city: None,
+            })
+            .await
+            .expect("profile");
+
+        let first = runtime.draw_fortune().await.expect("first fortune");
+        let second = runtime.draw_fortune().await.expect("redrawn fortune");
+        let saved = runtime
+            .fortune()
+            .await
+            .expect("saved fortune")
+            .expect("fortune exists");
+
+        assert_ne!(second.number, first.number);
+        assert_eq!(saved.number, second.number);
+        assert_eq!(saved.id, second.id);
     }
 
     #[tokio::test]

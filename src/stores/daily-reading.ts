@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { useCommandClient } from "@/services/commands";
 import { toAppError } from "@/services/errors";
+import { saveMoodSerialized } from "@/services/mood-mutations";
 import type {
   AppErrorShape,
   DailyReading,
@@ -21,7 +22,9 @@ export const useDailyReadingStore = defineStore("dailyReading", {
   }),
   actions: {
     async load(force = false) {
+      const moodPromise = this.syncMood();
       if (this.reading && !force && !this.requiresRecalibration) {
+        await moodPromise;
         return this.reading;
       }
       const generation = ++this.loadGeneration;
@@ -38,9 +41,19 @@ export const useDailyReadingStore = defineStore("dailyReading", {
         this.error = toAppError(error);
         return null;
       } finally {
+        await moodPromise;
         if (generation === this.loadGeneration) {
           this.loading = false;
         }
+      }
+    },
+    async syncMood() {
+      try {
+        const entry = await useCommandClient().getTodayMood();
+        this.moodEntry = entry;
+        this.selectedMood = entry?.mood ?? null;
+      } catch (error) {
+        this.error = toAppError(error);
       }
     },
     chooseMood(mood: Mood) {
@@ -50,7 +63,7 @@ export const useDailyReadingStore = defineStore("dailyReading", {
       if (!this.selectedMood) return;
       this.savingMood = true;
       try {
-        this.moodEntry = await useCommandClient().saveMood(this.selectedMood);
+        this.moodEntry = await saveMoodSerialized(this.selectedMood);
       } catch (error) {
         this.error = toAppError(error);
       } finally {

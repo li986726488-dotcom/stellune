@@ -2,7 +2,8 @@ use tauri::State;
 
 use crate::{
     domain::models::{
-        AppStateDto, DailyFortune, DailyReading, MoodEntry, Profile, ProfileInput, TrailResponse,
+        AppStateDto, CompatibilityReading, DailyFortune, DailyReading, EmotionGuide, MoodEntry,
+        Profile, ProfileInput, TrailResponse,
     },
     error::AppError,
     services::AppRuntime,
@@ -37,6 +38,11 @@ pub async fn save_mood(state: State<'_, AppRuntime>, mood: String) -> Result<Moo
 }
 
 #[tauri::command]
+pub async fn get_today_mood(state: State<'_, AppRuntime>) -> Result<Option<MoodEntry>, AppError> {
+    state.today_mood().await
+}
+
+#[tauri::command]
 pub async fn get_trail(state: State<'_, AppRuntime>, days: i64) -> Result<TrailResponse, AppError> {
     state.trail(days).await
 }
@@ -51,4 +57,20 @@ pub async fn get_daily_fortune(
 #[tauri::command]
 pub async fn draw_daily_fortune(state: State<'_, AppRuntime>) -> Result<DailyFortune, AppError> {
     state.draw_fortune().await
+}
+
+#[tauri::command]
+pub async fn get_compatibility(
+    state: State<'_, AppRuntime>,
+    partner_sign: String,
+) -> Result<CompatibilityReading, AppError> {
+    state.compatibility(partner_sign).await
+}
+
+#[tauri::command]
+pub async fn get_emotion_guide(
+    state: State<'_, AppRuntime>,
+    mood: Option<String>,
+) -> Result<Option<EmotionGuide>, AppError> {
+    state.emotion_guide(mood).await
 }

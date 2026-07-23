@@ -187,11 +187,50 @@ pub struct TrailResponse {
 pub struct DailyFortune {
     pub id: String,
     pub date: String,
+    pub number: i32,
+    pub catalog: String,
     pub grade: String,
     pub title: String,
     pub verse: String,
     pub interpretation: String,
     pub advice: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompatibilityFactor {
+    pub key: String,
+    pub label: String,
+    pub score: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompatibilityReading {
+    pub mode: String,
+    pub primary_sign: ZodiacSign,
+    pub partner_sign: ZodiacSign,
+    pub score: i32,
+    pub level: String,
+    pub title: String,
+    pub summary: String,
+    pub factors: Vec<CompatibilityFactor>,
+    pub certainty: String,
+    pub rules_version: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EmotionGuide {
+    pub mood: String,
+    pub title: String,
+    pub summary: String,
+    pub action: String,
+    pub need: String,
+    pub based_on: Vec<String>,
+    pub generator: String,
+    pub certainty: String,
+    pub rules_version: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
