@@ -1,0 +1,51 @@
+@font-face {
+  font-family: "ZCOOL XiaoWei";
+  src: url("/assets/ZCOOLXiaoWei-Regular.ttf") format("truetype");
+  font-display: swap;
+}
+
+:root {
+  --window-width: 960px;
+  --window-height: 640px;
+
+  --font-display: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", serif;
+  --font-body: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "Microsoft YaHei", serif;
+
+  --color-bg-cosmos: #061225;
+  --color-bg-deep: #071328;
+  --color-surface: rgba(10, 25, 48, 0.82);
+  --color-surface-strong: rgba(13, 29, 55, 0.9);
+  --color-surface-soft: rgba(19, 37, 69, 0.52);
+  --color-border: rgba(136, 157, 199, 0.24);
+  --color-border-strong: rgba(155, 174, 214, 0.38);
+  --color-text-primary: #f4ecdc;
+  --color-text-secondary: #aeb6ca;
+  --color-text-muted: #747f99;
+  --color-accent-gold: #e2c48f;
+  --color-accent-mist: #b8a0ec;
+  --color-accent-mist-soft: #d3c6f4;
+  --color-danger-soft: #e6aaa7;
+  --color-bg-hover: rgba(184, 160, 236, 0.09);
+  --color-bg-selected: rgba(184, 160, 236, 0.15);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 30px;
+  --space-8: 36px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+
+  --shadow-panel: 0 22px 50px rgba(0, 8, 26, 0.26);
+  --shadow-glow: 0 0 26px rgba(177, 157, 235, 0.22);
+  --easing-standard: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --motion-fortune-reveal-duration: 1600ms;
+  --motion-fortune-reveal-angle: 1260deg;
+  --transition-fast: 160ms ease;
+}

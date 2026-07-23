@@ -1,0 +1,71 @@
+{
+  "id": "reading-2026-07-23-libra",
+  "date": "2026-07-23",
+  "weekday": "星期四",
+  "zodiac": {
+    "slug": "libra",
+    "name": "天秤座",
+    "symbol": "♎"
+  },
+  "personalizationMode": "sunSignLite",
+  "hero": {
+    "title": "把光留给真正值得回应的地方",
+    "subtitle": "行动可以向前，答案不必急着说完。",
+    "theme": "校准"
+  },
+  "scores": {
+    "overall": 78,
+    "dimensions": {
+      "love": 76,
+      "work": 85,
+      "wealth": 75,
+      "social": 79,
+      "inner": 72
+    }
+  },
+  "briefs": [
+    {
+      "key": "relationship",
+      "label": "关系",
+      "text": "清楚表达边界，比勉强维持和谐更靠近答案。",
+      "basedOn": ["saturn-opposition-libra", "venus-house-12"]
+    },
+    {
+      "key": "work",
+      "label": "工作",
+      "text": "行动力正在回升，重要消息发出前再确认一次。",
+      "basedOn": ["mars-trine-libra", "mercury-square-libra"]
+    },
+    {
+      "key": "self",
+      "label": "自我",
+      "text": "给独处留一点空间，情绪会在安静里重新排好顺序。",
+      "basedOn": ["venus-house-12", "moon-house-2"]
+    }
+  ],
+  "echo": "慢一点回答，不代表你没有答案。有时，那是内心在替你筛选真正重要的声音。",
+  "lucky": {
+    "color": {
+      "value": "晨雾蓝",
+      "hex": "#9FB7D8",
+      "basis": "Mars in Gemini + air-element palette",
+      "certainty": "entertainment-rule"
+    },
+    "number": {
+      "value": "9",
+      "basis": "Moon degree + zodiac ordinal",
+      "certainty": "entertainment-rule"
+    },
+    "time": {
+      "value": "19:00—21:00",
+      "basis": "Moon in Scorpio evening slot",
+      "certainty": "entertainment-rule"
+    }
+  },
+  "source": {
+    "provider": "AstrologyAPI fixture",
+    "rulesVersion": "2026.07.1",
+    "narrativeProvider": "template",
+    "stale": false
+  }
+}

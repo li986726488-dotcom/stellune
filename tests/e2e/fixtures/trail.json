@@ -1,0 +1,88 @@
+{
+  "summary": {
+    "average": 76,
+    "primaryMood": "平静",
+    "primaryMoodCount": 3,
+    "risingDimension": "social",
+    "risingDelta": 9
+  },
+  "entries": [
+    {
+      "date": "2026-07-17",
+      "weekday": "星期五",
+      "theme": "呼吸",
+      "scores": {
+        "overall": 72,
+        "dimensions": { "love": 70, "work": 73, "wealth": 66, "social": 71, "inner": 80 }
+      },
+      "mood": "低落",
+      "echo": "慢一点也没关系，先让心重新找到可以停靠的位置。"
+    },
+    {
+      "date": "2026-07-18",
+      "weekday": "星期六",
+      "theme": "整理",
+      "scores": {
+        "overall": 75,
+        "dimensions": { "love": 74, "work": 78, "wealth": 69, "social": 72, "inner": 82 }
+      },
+      "mood": "疲惫",
+      "echo": "把复杂的事放回它原本的位置，你不必同时回应所有声音。"
+    },
+    {
+      "date": "2026-07-19",
+      "weekday": "星期日",
+      "theme": "靠近",
+      "scores": {
+        "overall": 79,
+        "dimensions": { "love": 84, "work": 76, "wealth": 71, "social": 83, "inner": 81 }
+      },
+      "mood": "平静",
+      "echo": "一段轻松的对话，会提醒你关系也可以不那么费力。"
+    },
+    {
+      "date": "2026-07-20",
+      "weekday": "星期一",
+      "theme": "留白",
+      "scores": {
+        "overall": 73,
+        "dimensions": { "love": 76, "work": 70, "wealth": 68, "social": 75, "inner": 78 }
+      },
+      "mood": "迷茫",
+      "echo": "答案还没出现之前，允许自己先和不确定相处一会儿。"
+    },
+    {
+      "date": "2026-07-21",
+      "weekday": "星期二",
+      "theme": "回应",
+      "scores": {
+        "overall": 81,
+        "dimensions": { "love": 86, "work": 79, "wealth": 75, "social": 88, "inner": 77 }
+      },
+      "mood": "开心",
+      "echo": "你的真诚被看见了，也正在让身边的关系变得更明亮。"
+    },
+    {
+      "date": "2026-07-22",
+      "weekday": "星期三",
+      "theme": "松弛",
+      "scores": {
+        "overall": 76,
+        "dimensions": { "love": 80, "work": 74, "wealth": 71, "social": 82, "inner": 79 }
+      },
+      "mood": "平静",
+      "echo": "无需用力证明什么，稳定的节奏本身就是一种前进。"
+    },
+    {
+      "date": "2026-07-23",
+      "weekday": "星期四",
+      "theme": "校准",
+      "scores": {
+        "overall": 78,
+        "dimensions": { "love": 76, "work": 85, "wealth": 75, "social": 79, "inner": 72 }
+      },
+      "mood": "平静",
+      "echo": "慢一点回答，不代表你没有答案。有时，那是内心在替你筛选真正重要的声音。"
+    }
+  ]
+}

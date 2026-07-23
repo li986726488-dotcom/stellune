@@ -1,0 +1,18 @@
+{
+  "id": "profile-local",
+  "guestId": "guest-stellune-e2e",
+  "nickname": "星际旅人",
+  "birthday": "1998-10-08",
+  "birthTime": null,
+  "birthCity": null,
+  "zodiac": {
+    "slug": "libra",
+    "name": "天秤座",
+    "symbol": "♎"
+  },
+  "personalizationMode": "sunSignLite",
+  "completeness": 40,
+  "calculationVersion": 1,
+  "createdAt": "2026-07-23T09:00:00+08:00",
+  "updatedAt": "2026-07-23T09:00:00+08:00"
+}

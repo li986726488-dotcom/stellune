@@ -1,0 +1,69 @@
+@font-face {
+  font-family: "Material Design Icons";
+  src: url("/assets/MaterialDesignIcons.woff2") format("woff2");
+  font-style: normal;
+  font-weight: normal;
+  font-display: block;
+}
+
+.mdi {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  font-family: "Material Design Icons";
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  line-height: 1;
+  text-rendering: auto;
+  text-transform: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mdi-zodiac-aquarius::before {
+  content: "\F0A7D";
+}
+
+.mdi-zodiac-aries::before {
+  content: "\F0A7E";
+}
+
+.mdi-zodiac-cancer::before {
+  content: "\F0A7F";
+}
+
+.mdi-zodiac-capricorn::before {
+  content: "\F0A80";
+}
+
+.mdi-zodiac-gemini::before {
+  content: "\F0A81";
+}
+
+.mdi-zodiac-leo::before {
+  content: "\F0A82";
+}
+
+.mdi-zodiac-libra::before {
+  content: "\F0A83";
+}
+
+.mdi-zodiac-pisces::before {
+  content: "\F0A84";
+}
+
+.mdi-zodiac-sagittarius::before {
+  content: "\F0A85";
+}
+
+.mdi-zodiac-scorpio::before {
+  content: "\F0A86";
+}
+
+.mdi-zodiac-taurus::before {
+  content: "\F0A87";
+}
+
+.mdi-zodiac-virgo::before {
+  content: "\F0A88";
+}
