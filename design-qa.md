@@ -4,12 +4,12 @@
 
 **Comparison target**
 
-- Source visual truth: `<LOCAL_REFERENCE_ASSET>`
-- Rendered implementation: `<PROJECT_ROOT>\docs\qa\screenshots\today-960x640.png`
-- Full-view comparison: `<PROJECT_ROOT>\docs\qa\today-reference-comparison.png`
-- Native-select issue reference: `<USER_REFERENCE_ASSET>`
-- P3 custom-select implementation: `<PROJECT_ROOT>\docs\qa\screenshots\explore-p3-select-open.png`
-- Select-state comparison: `<PROJECT_ROOT>\docs\qa\explore-select-comparison.png`
+- Source visual truth: 本地 P3 视觉参考资产（未纳入仓库）
+- Rendered implementation: `docs/qa/screenshots/today-960x640.png`
+- Full-view comparison: `docs/qa/today-reference-comparison.png`
+- Native-select issue reference: 用户提供的临时截图（未纳入仓库）
+- P3 custom-select implementation: `docs/qa/screenshots/explore-p3-select-open.png`
+- Select-state comparison: `docs/qa/explore-select-comparison.png`
 - Local route: `http://127.0.0.1:4173/#/`
 - State: 已完成游客资料、今日简报已生成、今日心情尚未保存
 
@@ -44,7 +44,7 @@
 **Focused region evidence**
 
 - The normalized `1920 × 640` full-view comparison preserves the title, radar labels, navigation icons, right-panel copy, and footer at readable size.
-- The Explore dropdown was compared in the same open state using `<PROJECT_ROOT>\docs\qa\explore-select-comparison.png`. The native gray popup, hard white text, and platform selection bar are gone; the P3 layer now belongs to the same visual system as the surrounding card.
+- The Explore dropdown was compared in the same open state using `docs/qa/explore-select-comparison.png`. The native gray popup, hard white text, and platform selection bar are gone; the P3 layer now belongs to the same visual system as the surrounding card.
 
 **Comparison history**
 
@@ -59,14 +59,14 @@
 4. Fix applied.
    - Limited ZCOOL XiaoWei to the brand mark and changed generated Chinese headings/body copy to a complete Song serif system stack.
 5. Post-fix pass.
-   - Evidence: `<PROJECT_ROOT>\docs\qa\today-reference-comparison.png`
+   - Evidence: `docs/qa/today-reference-comparison.png`
    - The title remains intact, the constellation is proportionally closer to the source, all Chinese characters render correctly, and no P0/P1/P2 findings remain.
 6. Explore/profile interaction pass.
    - The Explore screen was inspected before and after drawing in the in-app browser at `960 × 640`.
    - The card front and revealed result remain centered without clipping; the selected Explore/Profile tabs now match the reference treatment.
    - The profile recalibration confirmation was inspected with a changed birth time; copy and both actions remain visible without overflow.
 7. Explore custom-select pass.
-   - The user-provided native-select screenshot and the implemented open state were placed together in `<PROJECT_ROOT>\docs\qa\explore-select-comparison.png`.
+   - The user-provided native-select screenshot and the implemented open state were placed together in `docs/qa/explore-select-comparison.png`.
    - The menu remains above the emotion card, its selected state and check are visually distinct, and the trigger closes after keyboard selection.
    - The in-app browser console contained no warnings or errors.
 
@@ -97,11 +97,11 @@
 
 ## P3 出生日期与时间选择器验收
 
-- Source visual truth: `<LOCAL_GENERATED_ASSET>`
+- Source visual truth: 本地生成的 P3 参考图（未纳入仓库）
 - Implementation screenshots:
-  - `<PROJECT_ROOT>\docs\qa\screenshots\p3-date-picker-profile.png`
-  - `<PROJECT_ROOT>\docs\qa\screenshots\p3-time-picker-profile.png`
-- Combined comparison: `<PROJECT_ROOT>\docs\qa\screenshots\p3-date-picker-comparison.png`
+  - `docs/qa/screenshots/p3-date-picker-profile.png`
+  - `docs/qa/screenshots/p3-time-picker-profile.png`
+- Combined comparison: `docs/qa/screenshots/p3-date-picker-comparison.png`
 - Viewport: `960 × 640` CSS px
 - Source: `1536 × 1024` px，按 `960 × 640` 等比归一化
 - Implementation: `960 × 640` px，`devicePixelRatio: 1`

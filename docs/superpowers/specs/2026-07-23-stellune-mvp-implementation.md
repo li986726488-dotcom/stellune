@@ -2,7 +2,7 @@
 
 ## 1. 目标
 
-在 `<PROJECT_ROOT>` 实现一个可运行的 Stellune（星迹）PC MVP：
+在项目根目录实现一个可运行的 Stellune（星迹）PC MVP：
 
 - Tauri 2 桌面容器，固定窗口 `960 × 640`。
 - Vue 3 + TypeScript + Pinia + Vue Router 前端。
@@ -107,7 +107,7 @@ App.vue
 
 参考：
 
-- `<LOCAL_REFERENCE_ASSET>`
+- 本地 P3 视觉参考资产（未纳入仓库）
 - 同目录 `implementation-*-960x640.png`
 - 同目录 `design-tokens.css`
 
