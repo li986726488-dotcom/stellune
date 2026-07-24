@@ -46,6 +46,20 @@ test("首次启动只要求生日，并进入今日页", async ({ page }) => {
   await assertFixedViewport(page);
 });
 
+test("WebView 可用宽度略小时窗口控制仍完整位于视口内", async ({ page }) => {
+  await page.setViewportSize({ width: 930, height: 640 });
+  await page.goto("/#/explore");
+
+  const closeButton = page.getByTestId("window-close");
+  await expect(closeButton).toBeVisible();
+  const closeBox = await closeButton.boundingBox();
+  expect(closeBox).not.toBeNull();
+  expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(930);
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(930);
+});
+
 test("今日页展示稳定数据，并能记录心情", async ({ page }) => {
   await page.goto("/#/");
   await expect(page.getByText("78", { exact: true }).first()).toBeVisible();
@@ -74,7 +88,7 @@ test("探索页可以重新抽签并保存当天最新结果", async ({ page }) 
   await expect(page.getByText("轻触抽取今日签")).toBeVisible();
   const resonanceSign = page.getByRole("combobox", { name: "选择对方星座" });
   await expect(resonanceSign).toHaveText("双子座");
-  await expect(page.getByTestId("compatibility-score")).toHaveText("85");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("91");
   await expect(page.getByTestId("compatibility-title")).toHaveText(
     "风与风的默契",
   );
@@ -82,7 +96,7 @@ test("探索页可以重新抽签并保存当天最新结果", async ({ page }) 
   await expect(page.getByRole("listbox")).toBeVisible();
   await resonanceSign.press("Enter");
   await expect(resonanceSign).toHaveText("巨蟹座");
-  await expect(page.getByTestId("compatibility-score")).toHaveText("51");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("48");
   await expect(page.getByTestId("compatibility-title")).toHaveText(
     "差异里的吸引力",
   );
@@ -92,7 +106,7 @@ test("探索页可以重新抽签并保存当天最新结果", async ({ page }) 
   ).toBeVisible();
   await page.getByRole("option", { name: "狮子座" }).click();
   await expect(resonanceSign).toHaveText("狮子座");
-  await expect(page.getByTestId("compatibility-score")).toHaveText("88");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("95");
 
   await expect(page.getByTestId("emotion-guide-title")).toHaveText(
     "先听见此刻的自己",
@@ -121,7 +135,7 @@ test("探索页可以重新抽签并保存当天最新结果", async ({ page }) 
   );
   await resonanceSign.press("Enter");
   await expect(resonanceSign).toHaveText("双鱼座");
-  await expect(page.getByTestId("compatibility-score")).toHaveText("55");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("53");
   await resonanceSign.click();
   await expect(
     page.getByRole("option", { name: "双鱼座", selected: true }),
@@ -131,7 +145,7 @@ test("探索页可以重新抽签并保存当天最新结果", async ({ page }) 
   const fortuneCard = page.getByTestId("daily-fortune-card");
   await expect(page.locator(".fortune-card-scene")).toHaveCSS("perspective", "900px");
   await expect(fortuneCard).toHaveAttribute("data-revealed", "false");
-  await expect(fortuneCard).toHaveCSS("transition-duration", "1.6s");
+  await expect(fortuneCard).toHaveCSS("animation-name", "none");
   await expect(fortuneCard).toHaveCSS("--motion-fortune-reveal-angle", "1260deg");
   await expect(fortuneCard).toHaveCSS("transform-style", "preserve-3d");
   await expect(page.locator(".fortune-card-front")).toHaveCSS(
@@ -141,17 +155,23 @@ test("探索页可以重新抽签并保存当天最新结果", async ({ page }) 
   await fortuneCard.click();
   await expect(fortuneCard).toHaveAttribute("data-revealed", "true");
   await expect(page.getByRole("button", { name: "星轨正在旋转…" })).toBeDisabled();
-  await page.waitForTimeout(1650);
+  await expect(fortuneCard).toHaveCSS("animation-name", "fortune-reveal");
+  await expect(fortuneCard).toHaveCSS("animation-duration", "1.6s");
+  await expect(page.getByTestId("draw-fortune")).toContainText("重新抽签", {
+    timeout: 2500,
+  });
   expect(
     await fortuneCard.evaluate((element) => getComputedStyle(element).transform),
   ).not.toBe("none");
   await expect(page.getByTestId("fortune-title")).toHaveText("云开见月");
   await expect(page.getByTestId("fortune-number")).toHaveText("第 47 签 · 上上签");
-  await expect(page.getByTestId("draw-fortune")).toContainText("重新抽签");
   await page.getByTestId("draw-fortune").click();
   await expect(page.getByTestId("draw-fortune")).toBeDisabled();
   await expect(page.getByTestId("draw-fortune")).toContainText("星轨正在旋转…");
-  await page.waitForTimeout(1650);
+  await expect(fortuneCard).toHaveCSS("animation-name", "fortune-reveal");
+  await expect(page.getByTestId("draw-fortune")).toContainText("重新抽签", {
+    timeout: 2500,
+  });
   await expect(page.getByTestId("fortune-title")).toHaveText("春水绕石");
   await expect(page.getByTestId("fortune-number")).toHaveText("第 48 签 · 中上签");
   await expect(page.getByText("每次重抽都会更新今日保存的签")).toBeVisible();
@@ -168,10 +188,33 @@ test("探索页可以重新抽签并保存当天最新结果", async ({ page }) 
   await assertFixedViewport(page);
 });
 
+test("减少动态效果环境仍保留完整多圈翻牌且不会卡住", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/#/explore");
+  const fortuneCard = page.getByTestId("daily-fortune-card");
+
+  await fortuneCard.click();
+
+  await expect(fortuneCard).toHaveAttribute("data-revealed", "true");
+  await expect(fortuneCard).toHaveCSS(
+    "animation-name",
+    "fortune-reveal-reduced",
+  );
+  await expect(fortuneCard).toHaveCSS("animation-duration", "1.6s");
+  await expect(fortuneCard).toHaveCSS(
+    "--motion-fortune-reveal-angle",
+    "1260deg",
+  );
+  await expect(page.getByTestId("fortune-title")).toHaveText("云开见月");
+  await expect(page.getByTestId("draw-fortune")).toContainText("重新抽签", {
+    timeout: 2500,
+  });
+});
+
 test("探索页请求失败时恢复已确认内容并显示提示", async ({ page }) => {
   await page.goto("/?scenario=explore-error#/explore");
   const resonanceSign = page.getByRole("combobox", { name: "选择对方星座" });
-  await expect(page.getByTestId("compatibility-score")).toHaveText("85");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("91");
 
   await resonanceSign.click();
   await page.getByRole("option", { name: "巨蟹座" }).click();
@@ -179,7 +222,7 @@ test("探索页请求失败时恢复已确认内容并显示提示", async ({ pa
     "关系共鸣暂时没有回应。",
   );
   await expect(resonanceSign).toHaveText("双子座");
-  await expect(page.getByTestId("compatibility-score")).toHaveText("85");
+  await expect(page.getByTestId("compatibility-score")).toHaveText("91");
 
   await page.getByTestId("emotion-疲惫").click();
   await expect(page.getByTestId("emotion-error")).toContainText(

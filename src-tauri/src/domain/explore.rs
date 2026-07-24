@@ -3,8 +3,12 @@ use crate::domain::{
     rules::zodiac_from_slug,
 };
 
-pub const COMPATIBILITY_RULES_VERSION: &str = "2026.07.1";
+pub const COMPATIBILITY_RULES_VERSION: &str = "2026.07.2";
 pub const EMOTION_RULES_VERSION: &str = "2026.07.1";
+const MIN_RAW_COMPATIBILITY_SCORE: i32 = 39;
+const MAX_RAW_COMPATIBILITY_SCORE: i32 = 78;
+const MIN_COMPATIBILITY_SCORE: i32 = 45;
+const MAX_COMPATIBILITY_SCORE: i32 = 95;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Element {
@@ -49,7 +53,8 @@ pub fn calculate_compatibility(
     let (polarity_score, polarity_label) = polarity_score(primary.polarity, partner.polarity);
     let distance = zodiac_distance(primary.index, partner.index);
     let (aspect_score, aspect_label) = aspect_score(distance);
-    let score = (10 + element_score + modality_score + polarity_score + aspect_score).clamp(45, 95);
+    let raw_score = element_score + modality_score + polarity_score + aspect_score;
+    let score = normalize_compatibility_score(raw_score);
 
     Some(CompatibilityReading {
         mode: "sunSignCompatibility".into(),
@@ -251,12 +256,20 @@ fn aspect_score(distance: usize) -> (i32, &'static str) {
     }
 }
 
+fn normalize_compatibility_score(raw_score: i32) -> i32 {
+    let raw_range = MAX_RAW_COMPATIBILITY_SCORE - MIN_RAW_COMPATIBILITY_SCORE;
+    let score_range = MAX_COMPATIBILITY_SCORE - MIN_COMPATIBILITY_SCORE;
+    let normalized = MIN_COMPATIBILITY_SCORE
+        + ((raw_score - MIN_RAW_COMPATIBILITY_SCORE) * score_range + raw_range / 2) / raw_range;
+    normalized.clamp(MIN_COMPATIBILITY_SCORE, MAX_COMPATIBILITY_SCORE)
+}
+
 fn compatibility_level(score: i32) -> &'static str {
     match score {
         90..=95 => "高度共鸣",
         80..=89 => "默契靠近",
         70..=79 => "平衡互补",
-        60..=69 => "需要理解",
+        55..=69 => "需要理解",
         _ => "差异成长",
     }
 }
@@ -361,8 +374,8 @@ mod tests {
     fn libra_and_gemini_have_explainable_compatibility() {
         let reading = calculate_compatibility("libra", "gemini").expect("known signs");
 
-        assert_eq!(reading.score, 85);
-        assert_eq!(reading.level, "默契靠近");
+        assert_eq!(reading.score, 91);
+        assert_eq!(reading.level, "高度共鸣");
         assert_eq!(reading.title, "风与风的默契");
         assert_eq!(reading.factors.len(), 4);
         assert_eq!(reading.factors[0].score, 30);
@@ -373,9 +386,65 @@ mod tests {
     fn libra_and_cancer_show_their_challenge() {
         let reading = calculate_compatibility("libra", "cancer").expect("known signs");
 
-        assert_eq!(reading.score, 51);
+        assert_eq!(reading.score, 48);
         assert_eq!(reading.level, "差异成长");
         assert_eq!(reading.title, "差异里的吸引力");
+    }
+
+    #[test]
+    fn compatibility_matrix_is_symmetric_and_covers_the_declared_range() {
+        let signs = [
+            "aries",
+            "taurus",
+            "gemini",
+            "cancer",
+            "leo",
+            "virgo",
+            "libra",
+            "scorpio",
+            "sagittarius",
+            "capricorn",
+            "aquarius",
+            "pisces",
+        ];
+        let mut minimum = i32::MAX;
+        let mut maximum = i32::MIN;
+        let mut minimum_raw = i32::MAX;
+        let mut maximum_raw = i32::MIN;
+        let mut levels = std::collections::HashSet::new();
+
+        for (index, first) in signs.iter().enumerate() {
+            for second in signs.iter().skip(index) {
+                let forward = calculate_compatibility(first, second).expect("known signs");
+                let reverse = calculate_compatibility(second, first).expect("known signs");
+                assert_eq!(forward.score, reverse.score, "{first} and {second}");
+                let raw_score = forward
+                    .factors
+                    .iter()
+                    .map(|factor| factor.score)
+                    .sum::<i32>();
+                minimum = minimum.min(forward.score);
+                maximum = maximum.max(forward.score);
+                minimum_raw = minimum_raw.min(raw_score);
+                maximum_raw = maximum_raw.max(raw_score);
+                levels.insert(forward.level);
+            }
+        }
+
+        assert_eq!(minimum_raw, MIN_RAW_COMPATIBILITY_SCORE);
+        assert_eq!(maximum_raw, MAX_RAW_COMPATIBILITY_SCORE);
+        assert_eq!(minimum, MIN_COMPATIBILITY_SCORE);
+        assert_eq!(maximum, MAX_COMPATIBILITY_SCORE);
+        assert_eq!(
+            levels,
+            std::collections::HashSet::from([
+                "高度共鸣".into(),
+                "默契靠近".into(),
+                "平衡互补".into(),
+                "需要理解".into(),
+                "差异成长".into(),
+            ])
+        );
     }
 
     #[test]

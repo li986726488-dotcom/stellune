@@ -6,9 +6,7 @@ html,
 body,
 #app {
   width: 100%;
-  min-width: var(--window-width);
   height: 100%;
-  min-height: var(--window-height);
   margin: 0;
   overflow: hidden;
 }
@@ -73,8 +71,8 @@ ul {
 
 .app-root,
 .app-shell {
-  width: var(--window-width);
-  height: var(--window-height);
+  width: 100%;
+  height: 100%;
 }
 
 .app-root {
@@ -992,15 +990,15 @@ ul {
   cursor: pointer;
   background: transparent;
   transform-style: preserve-3d;
-  transition: transform var(--motion-fortune-reveal-duration) var(--easing-standard);
 }
 
 .fortune-card.revealed {
-  transform: rotateY(var(--motion-fortune-reveal-angle));
+  transform: rotateY(180deg);
 }
 
-.fortune-card.motion-suppressed {
-  transition: none;
+.fortune-card.spinning {
+  animation: fortune-reveal var(--motion-fortune-reveal-duration) var(--easing-standard) both;
+  will-change: transform;
 }
 
 .fortune-card-face {
@@ -1112,6 +1110,28 @@ ul {
   to {
     box-shadow: 0 0 34px rgba(184, 160, 236, 0.34);
     transform: scale(1.03);
+  }
+}
+
+@keyframes fortune-reveal {
+  from {
+    transform: rotateY(0deg);
+  }
+
+  to {
+    transform: rotateY(var(--motion-fortune-reveal-angle));
+  }
+}
+
+@keyframes fortune-reveal-reduced {
+  from {
+    opacity: 0.82;
+    transform: rotateY(0deg) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: rotateY(var(--motion-fortune-reveal-angle)) scale(1);
   }
 }
 
@@ -2370,5 +2390,11 @@ ul {
 
   .fortune-card.revealing .fortune-card-back > * {
     animation-delay: 0ms !important;
+  }
+
+  .fortune-card.spinning {
+    animation-name: fortune-reveal-reduced !important;
+    animation-duration: var(--motion-fortune-reveal-duration) !important;
+    animation-timing-function: var(--easing-standard) !important;
   }
 }

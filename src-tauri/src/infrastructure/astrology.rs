@@ -10,6 +10,7 @@ pub const ASTROLOGY_ENDPOINT: &str = "https://json.astrologyapi.com/v1/planets/t
 pub struct AstrologyProvider {
     client: reqwest::Client,
     logger: AppLogger,
+    api_key: Option<String>,
 }
 
 pub struct SkyResponse {
@@ -19,10 +20,11 @@ pub struct SkyResponse {
 }
 
 impl AstrologyProvider {
-    pub fn new(logger: AppLogger) -> Self {
+    pub fn new(logger: AppLogger, api_key: Option<String>) -> Self {
         Self {
             client: reqwest::Client::new(),
             logger,
+            api_key,
         }
     }
 
@@ -34,7 +36,7 @@ impl AstrologyProvider {
         longitude: f64,
         timezone: f64,
     ) -> Result<SkyResponse, AppError> {
-        let api_key = std::env::var("STELLUNE_ASTROLOGY_API_KEY").map_err(|_| {
+        let api_key = self.api_key.as_deref().ok_or_else(|| {
             AppError::astrology(
                 "ASTROLOGY_API_KEY_MISSING",
                 "尚未配置星相数据密钥，请设置 STELLUNE_ASTROLOGY_API_KEY。",

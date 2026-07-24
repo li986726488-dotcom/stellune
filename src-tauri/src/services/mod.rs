@@ -19,6 +19,7 @@ use crate::{
     error::AppError,
     infrastructure::{
         astrology::{ASTROLOGY_ENDPOINT, AstrologyProvider},
+        config::ServiceConfig,
         database::{self, SnapshotRecord},
         logger::AppLogger,
     },
@@ -36,9 +37,25 @@ pub struct AppRuntime {
 
 impl AppRuntime {
     pub fn new(pool: SqlitePool, logger: AppLogger) -> Self {
+        let service_config = ServiceConfig::load();
+        if let Some(narrative) = &service_config.narrative {
+            logger.info(
+                "service.configured",
+                "startup",
+                json!({
+                    "provider": "narrative",
+                    "baseUrl": narrative.base_url,
+                    "model": narrative.model,
+                    "credentialConfigured": !narrative.api_key.is_empty(),
+                }),
+            );
+        }
         Self {
             pool,
-            astrology: AstrologyProvider::new(logger.clone()),
+            astrology: AstrologyProvider::new(
+                logger.clone(),
+                service_config.astrology_api_key.clone(),
+            ),
             logger,
         }
     }
@@ -654,7 +671,7 @@ mod tests {
             .compatibility("gemini".into())
             .await
             .expect("compatibility");
-        assert_eq!(compatibility.score, 85);
+        assert_eq!(compatibility.score, 91);
         assert_eq!(compatibility.primary_sign.slug, "libra");
         assert_eq!(compatibility.partner_sign.slug, "gemini");
 

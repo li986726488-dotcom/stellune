@@ -87,11 +87,14 @@ STELLUNE_NARRATIVE_API_KEY
 ### UI
 
 - PC 窗口固定 `960 × 640`，默认不可缩放。
+- Tauri 负责固定窗口尺寸；DOM 根节点使用实际客户端 `100%`，不得用 `min-width`
+  强制撑出 WebView 视口，避免 DPI、显示缩放或 WebView zoom 下裁切窗口控件。
 - 颜色、字号、间距、圆角、阴影和窗口尺寸统一放在 `src/styles/tokens.css`。
 - 禁止在组件中新增无语义的硬编码颜色。
 - 图标使用统一图标库，不用 Unicode 字符代替正式图标。
 - 星图点位、分数标签和无障碍文本必须由同一五维数组生成。
-- 动效必须支持 `prefers-reduced-motion`。
+- 动效必须支持 `prefers-reduced-motion`；抽签翻牌属于用户确认的核心仪式感反馈，
+  在该环境仍保留 3.5 圈完整翻牌，其他非关键动效使用短时轻量替代或关闭。
 
 ## 数据与生成
 
@@ -100,6 +103,8 @@ STELLUNE_NARRATIVE_API_KEY
 - 五维固定为 `love`、`work`、`wealth`、`social`、`inner`。
 - 调整评分权重或幸运算法时必须升级规则版本。
 - 关系共鸣只能由 Rust `domain/explore` 计算，前端不得保存固定分数或复制评分公式。
+- 调整关系共鸣规则时必须升级其规则版本、遍历验证 78 组无序星座组合，并同步
+  Playwright fixture 中用于界面测试的预期结果。
 - 情绪说明书只读取用户主动选择或当天保存的 `MoodEntry`，不得推断用户情绪。
 - 探索页与今日页共用当天唯一的 `MoodEntry`。
 - 每日签运必须从 `domain/fortune_catalog.rs` 的 100 支原创“星轨百签”读取；

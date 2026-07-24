@@ -11,7 +11,9 @@ import type { Mood, ZodiacSlug } from "@/types";
 const store = useExploreStore();
 const revealing = ref(false);
 const cardRevealed = ref(false);
-const suppressCardMotion = ref(false);
+const cardSpinning = ref(false);
+const cardRenderKey = ref(0);
+const fortuneCard = ref<HTMLButtonElement | null>(null);
 const resonanceSign = computed({
   get: () => store.partnerSign,
   set: (value: string) => {
@@ -43,45 +45,71 @@ const fortuneNumberLabel = computed(() =>
     : "今日签运",
 );
 
+function waitForRevealAnimation(element: HTMLButtonElement) {
+  return new Promise<void>((resolve) => {
+    const timeoutId = window.setTimeout(finish, 2000);
+
+    function finish() {
+      window.clearTimeout(timeoutId);
+      element.removeEventListener("animationend", handleAnimationEnd);
+      resolve();
+    }
+
+    function handleAnimationEnd(event: AnimationEvent) {
+      if (
+        event.target === element &&
+        ["fortune-reveal", "fortune-reveal-reduced"].includes(
+          event.animationName,
+        )
+      ) {
+        finish();
+      }
+    }
+
+    element.addEventListener("animationend", handleAnimationEnd);
+  });
+}
+
+async function showCardFront() {
+  cardSpinning.value = false;
+  cardRevealed.value = false;
+  cardRenderKey.value += 1;
+  await nextTick();
+}
+
+async function revealCard() {
+  cardRevealed.value = true;
+  cardRenderKey.value += 1;
+  cardSpinning.value = true;
+  await nextTick();
+  const element = fortuneCard.value;
+  if (element) await waitForRevealAnimation(element);
+  cardSpinning.value = false;
+}
+
 async function drawFortune() {
   if (revealing.value) return;
   const hadFortune = Boolean(store.fortune);
   revealing.value = true;
 
-  if (hadFortune) {
-    suppressCardMotion.value = true;
-    cardRevealed.value = false;
-    await nextTick();
-    await new Promise<void>((resolve) =>
-      window.requestAnimationFrame(() => resolve()),
-    );
-    suppressCardMotion.value = false;
-    await nextTick();
-  }
+  if (hadFortune) await showCardFront();
 
   const fortune = await store.draw();
   if (!fortune) {
-    suppressCardMotion.value = true;
     cardRevealed.value = hadFortune;
+    cardRenderKey.value += 1;
     await nextTick();
-    suppressCardMotion.value = false;
     revealing.value = false;
     return;
   }
 
-  cardRevealed.value = true;
-  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    await new Promise((resolve) => window.setTimeout(resolve, 1600));
-  }
+  await revealCard();
   revealing.value = false;
 }
 
 onMounted(async () => {
   await store.load();
-  suppressCardMotion.value = true;
   cardRevealed.value = Boolean(store.fortune);
-  await nextTick();
-  suppressCardMotion.value = false;
 });
 </script>
 
@@ -115,12 +143,14 @@ onMounted(async () => {
 
         <div class="fortune-card-scene">
           <button
+            :key="cardRenderKey"
+            ref="fortuneCard"
             class="fortune-card"
             :class="{
               revealed: cardRevealed,
+              spinning: cardSpinning,
               drawing: store.drawing,
               revealing,
-              'motion-suppressed': suppressCardMotion,
             }"
             type="button"
             data-testid="daily-fortune-card"

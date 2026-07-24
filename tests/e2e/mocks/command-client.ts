@@ -199,7 +199,7 @@ export class MockCommandClient implements CommandClient {
       summary: fixture.summary,
       factors: [],
       certainty: "sun-sign-entertainment",
-      rulesVersion: "2026.07.1",
+      rulesVersion: "2026.07.2",
     };
   }
 

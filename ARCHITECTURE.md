@@ -122,7 +122,11 @@ localDate
 
 - `planets/tropical` 获取行星位置。
 - `natal_transits/daily` 在资料完整时获取个人行运。
-- Token 从 `STELLUNE_ASTROLOGY_API_KEY` 读取。
+- 服务配置由 `infrastructure/config.rs::ServiceConfig` 统一读取，运行时环境变量优先。
+- 内部测试包可以在编译进程中提供 `STELLUNE_ASTROLOGY_API_KEY`、
+  `STELLUNE_NARRATIVE_API_KEY`、`STELLUNE_NARRATIVE_BASE_URL` 和
+  `STELLUNE_NARRATIVE_MODEL`，通过 `option_env!` 生成安装包内的离线兜底配置；
+  明文不写入 Git 文件或构建日志。
 
 供应商响应先转换为项目模型：
 
@@ -141,7 +145,8 @@ interface PlanetPosition {
 
 - `isRetro` 可能是字符串，adapter 负责转成布尔值。
 - 供应商 `house` 不能直接当作用户个人宫位。
-- 正式安装包不得内置第三方密钥，应使用受控代理或本地星历。
+- 编译期内置密钥可被逆向提取，只允许内部临时测试；正式发布包不得使用该方式，
+  应改为受控代理或本地星历。
 
 ## 评分
 
@@ -256,14 +261,21 @@ Rust 侧通过 `infrastructure/logger` 输出结构化 JSONL。日志目录始�
 探索页的关系共鸣由 `domain/explore.rs` 确定性计算，不由前端拼分数：
 
 ```text
-10
-+ 元素关系（18 / 30 / 35）
-+ 宫位模式（7 / 9 / 12 / 15）
-+ 阴阳极性（6 / 10）
-+ 黄道距离（6 / 8 / 10 / 14 / 16 / 18 / 20）
+raw =
+  元素关系（18 / 30 / 35）
+  + 宫位模式（7 / 9 / 12 / 15）
+  + 阴阳极性（6 / 10）
+  + 黄道距离（6 / 8 / 10 / 14 / 16 / 18 / 20）
+
+score = 45 + round((raw - 39) × 50 / 39)
 ```
 
-最终限制在 `45..95`，当前模式固定标记为
+`39..78` 是遍历 78 组无序星座组合得到的实际原始分范围，线性归一化后完整使用
+`45..95` 展示区间，避免最高等级永远无法出现。等级依次为
+`45..54 / 55..69 / 70..79 / 80..89 / 90..95`。因子仍记录归一化前的
+可解释分值，当前规则版本为 `2026.07.2`。
+
+当前模式固定标记为
 `sunSignCompatibility` 和 `sun-sign-entertainment`。它只表示太阳星座层面的
 娱乐共鸣，不等同于双方本命盘合盘。
 
